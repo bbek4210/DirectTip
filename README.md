@@ -1,37 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DirectTip: Solana Tipping for YouTube Live
 
-## Getting Started
+DirectTip is a comprehensive platform that enables real-time, non-custodial tipping for YouTube creators using the Solana blockchain.
 
-First, run the development server:
+## 🌟 Project Components
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 1. Chrome Extension (`/extension`)
+- **Non-Custodial**: Connects directly to Phantom Wallet.
+- **YouTube Injection**: Automatically injects a tipping overlay into YouTube watch pages.
+- **Real-Time Feed**: Displays tip status (Pending -> Confirmed) with Solscan links.
+- **Multi-Token**: Supports SOL and USDC transfers.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Next.js Web Application (`/app`)
+- **Landing Page**: A premium, Solana-branded home page explaining the platform.
+- **Creator Dashboard**: A dedicated interface at `/dashboard` for creators to track tips in real-time.
+- **Backend API**: Minimal indexing service at `/api/tips` to track tip history.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Quick Start
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Extension Setup
+1. Open Chrome and go to `chrome://extensions/`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked** and select the `extension` folder.
+4. Click the DirectTip icon in your toolbar to configure your **Creator Wallet**.
 
-## Learn More
+### Web App Setup
+1. Install dependencies: `npm install`
+2. Run the development server: `npm run dev`
+3. Visit `http://localhost:3000` to see the landing page.
+4. Visit `http://localhost:3000/dashboard` to see the tip tracker.
 
-To learn more about Next.js, take a look at the following resources:
+## 🛠️ Tech Stack
+- **Blockchain**: Solana Web3.js
+- **Frontend**: Next.js 15+, Tailwind CSS, Geist Sans
+- **Extension**: Manifest V3, Vanilla JS/CSS
+- **Backend**: Next.js API Routes (Route Handlers)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-"# DirectTip" 
+## 🔒 Security
+- DirectTip never stores your private keys.
+- All transactions are signed locally via your Phantom Wallet.
+- Direct blockchain interaction ensures transparency and speed.

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "DirectTip",
+  "version": "1.0.0",
+  "description": "Tip YouTube creators directly with Solana and USDC.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://www.youtube.com/*", "http://localhost:3000/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch?v=*"],
+      "js": ["lib/solana-web3.min.js", "content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/solana-web3.min.js", "bridge.js"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ]
+}

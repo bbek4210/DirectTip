@@ -1,0 +1,241 @@
+:root {
+    --solana-purple: #9945FF;
+    --solana-green: #14F195;
+    --bg-dark: rgba(15, 15, 15, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-main: #ffffff;
+    --text-dim: #b0b0b0;
+}
+
+#direct-tip-overlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    pointer-events: none;
+}
+
+#dt-toggle-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--solana-purple), var(--solana-green));
+    border-radius: 22px; /* Squircle style */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(20, 241, 149, 0.4);
+    pointer-events: auto;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: #000;
+    font-size: 28px;
+    font-weight: 900;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+#dt-toggle-icon:hover {
+    transform: scale(1.1) translateY(-5px) rotate(5deg);
+    box-shadow: 0 0 50px rgba(20, 241, 149, 0.6);
+}
+
+#dt-main-card {
+    display: none; /* Hidden by default */
+}
+
+#dt-main-card.show {
+    display: block;
+}
+
+.dt-card {
+    background: var(--bg-dark);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dt-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(153, 69, 255, 0.4);
+}
+
+.dt-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.dt-logo {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, var(--solana-purple), var(--solana-green));
+    border-radius: 6px;
+}
+
+.dt-title {
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    color: var(--text-main);
+}
+
+.dt-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dt-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: white;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.dt-input:focus {
+    border-color: var(--solana-purple);
+}
+
+.dt-btn {
+    background: linear-gradient(135deg, var(--solana-purple), var(--solana-green));
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 8px;
+}
+
+.dt-btn:hover {
+    opacity: 0.9;
+}
+
+.dt-btn:active {
+    transform: scale(0.98);
+}
+
+.dt-btn:disabled {
+    background: #444;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Live Feed Styles */
+#dt-live-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.dt-event {
+    background: rgba(20, 241, 149, 0.1);
+    border-left: 3px solid var(--solana-green);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    animation: dt-slide-in 0.3s ease-out;
+}
+
+.dt-event.pending {
+    background: rgba(153, 69, 255, 0.1);
+    border-left-color: var(--solana-purple);
+}
+
+@keyframes dt-slide-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.dt-explorer-link {
+    color: var(--solana-green);
+    text-decoration: none;
+    font-size: 10px;
+    margin-top: 4px;
+    display: block;
+}
+
+/* Tabs */
+.dt-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 16px;
+    gap: 16px;
+}
+
+.dt-tab {
+    padding: 8px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.dt-tab.active {
+    color: var(--solana-green);
+    border-bottom-color: var(--solana-green);
+}
+
+/* Token Selector Custom */
+.dt-token-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.dt-token-option {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dt-token-option.active {
+    border-color: var(--solana-purple);
+    background: rgba(153, 69, 255, 0.1);
+}
+
+.dt-token-icon {
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.dt-token-label {
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Animations */
+@keyframes dt-pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(20, 241, 149, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(20, 241, 149, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(20, 241, 149, 0); }
+}
+
+.dt-confirmed-pulse {
+    animation: dt-pulse-glow 2s infinite;
+}
+
+.hidden { display: none !important; }
