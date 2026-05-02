@@ -2,39 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useOverlayTips } from "../../hooks/useTips";
+import { Tip } from "../../lib/api-types";
 
 export default function OverlayPage() {
     const params = useParams();
     const creatorId = params.creatorId as string;
-    const [alert, setAlert] = useState<any>(null);
-    const [queue, setQueue] = useState<any[]>([]);
+    const [alert, setAlert] = useState<Tip | null>(null);
+    const [queue, setQueue] = useState<Tip[]>([]);
     const [isShowing, setIsShowing] = useState(false);
 
-    // Poll for new tips (Real-time MVP)
-    useEffect(() => {
-        const checkTips = async () => {
-            try {
-                const res = await fetch(`/api/tips?creator=${creatorId}&limit=1`);
-                const tips = await res.json();
-                if (tips.length > 0) {
-                    const latest = tips[0];
-                    // Check if this tip is new (timestamp within last 10 seconds)
-                    const tipTime = new Date(latest.timestamp).getTime();
-                    const now = new Date().getTime();
-                    if (now - tipTime < 10000) {
-                        setQueue(prev => {
-                            // Avoid duplicates
-                            if (prev.find(t => t.signature === latest.signature)) return prev;
-                            return [...prev, latest];
-                        });
-                    }
-                }
-            } catch (e) {}
-        };
+    const { data: tipsData } = useOverlayTips(creatorId);
 
-        const interval = setInterval(checkTips, 3000);
-        return () => clearInterval(interval);
-    }, [creatorId]);
+    // Handle new tips from the query
+    useEffect(() => {
+        if (tipsData && tipsData.length > 0) {
+            setQueue(prev => {
+                const newTips = tipsData.filter(
+                    newTip => !prev.some(t => t._id === newTip._id) && (!alert || alert._id !== newTip._id)
+                );
+                return [...prev, ...newTips];
+            });
+        }
+    }, [tipsData, alert]);
 
     // Handle Animation Queue
     useEffect(() => {
@@ -45,10 +35,12 @@ export default function OverlayPage() {
             setQueue(prev => prev.slice(1));
             
             // Show for 8 seconds
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 setIsShowing(false);
-                setTimeout(() => setAlert(null), 500); // Wait for fade out
+                setTimeout(() => setAlert(null), 700); // Wait for fade out
             }, 8000);
+
+            return () => clearTimeout(timer);
         }
     }, [queue, isShowing]);
 

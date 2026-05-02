@@ -145,11 +145,3 @@ export default function TipPage() {
     </div>
   );
 }
-
-                <div className="mt-10 pt-8 border-t border-white/10 flex justify-center">
-                    <a href="/" className="text-[10px] font-bold tracking-widest text-zinc-600 hover:text-white transition-colors uppercase italic">Powered by DirectTip Protocol</a>
-                </div>
-            </div>
-        </div>
-    );
-}

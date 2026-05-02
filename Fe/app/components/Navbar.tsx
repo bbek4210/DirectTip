@@ -5,44 +5,66 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function Navbar() {
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const saved = localStorage.getItem('directTip_registered');
-    if (saved) setIsRegistered(true);
+    const saved = localStorage.getItem('directTip_user');
+    if (saved) setUser(JSON.parse(saved));
 
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [pathname]);
 
   return (
-    <nav className={`fixed top-0 z-[100] w-full transition-all duration-300 ${scrolled || pathname !== '/' ? 'border-b border-white/10 bg-black/80 backdrop-blur-lg py-3' : 'bg-transparent py-6'}`}>
+    <nav className={`fixed top-0 z-[100] w-full transition-all duration-500 ${scrolled || pathname !== '/' ? 'border-b border-white/5 bg-black/40 backdrop-blur-2xl py-4' : 'bg-transparent py-8'}`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="h-10 w-10 rounded-xl bg-solana-gradient shadow-[0_0_20px_rgba(153,69,255,0.3)] flex items-center justify-center font-bold text-black group-hover:scale-110 transition-transform">D</div>
-          <span className="text-2xl font-black tracking-tighter italic">DIRECTTIP</span>
+          <div className="h-10 w-10 rounded-xl bg-solana-gradient shadow-[0_0_30px_rgba(153,69,255,0.4)] flex items-center justify-center font-black text-black group-hover:scale-110 transition-transform">DT</div>
+          <span className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">DIRECTTIP</span>
         </Link>
         
-        <div className="hidden space-x-8 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 md:flex">
-          <Link href="/#features" className={`transition-colors hover:text-solana-green ${pathname === '/' ? 'text-zinc-400' : 'text-zinc-500'}`}>Features</Link>
-          <Link href="/dashboard" className={`transition-colors hover:text-solana-green ${pathname === '/dashboard' ? 'text-solana-green' : ''}`}>Dashboard</Link>
-          <Link href="/register" className={`transition-colors hover:text-solana-green ${pathname === '/register' ? 'text-solana-green' : ''}`}>Registration</Link>
-          <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" className="transition-colors hover:text-solana-green">Live Test</a>
+        <div className="hidden items-center space-x-10 text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500 md:flex">
+          <Link href="/#features" className="transition-all hover:text-white hover:tracking-[0.3em]">Features</Link>
+          {user && (
+            <>
+              <Link href="/dashboard" className={`transition-all hover:text-white ${pathname === '/dashboard' ? 'text-emerald-400' : ''}`}>Dashboard</Link>
+              {user.role === 'creator' && (
+                <Link href={`/overlay/${user._id}`} className={`transition-all hover:text-white ${pathname.includes('/overlay') ? 'text-emerald-400' : ''}`}>Creator Overlay</Link>
+              )}
+            </>
+          )}
+          {!user && (
+            <Link href="/register" className={`transition-all hover:text-white ${pathname === '/register' ? 'text-emerald-400' : ''}`}>Join Now</Link>
+          )}
+          <a href="https://www.youtube.com" target="_blank" className="transition-all hover:text-white">Live Demo</a>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.push(isRegistered ? '/dashboard' : '/register')}
-            className="group relative inline-flex items-center justify-center rounded-full bg-solana-gradient p-[1.5px] transition-transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(20,241,149,0.2)]"
-          >
-            <div className="rounded-full bg-[#0a0a0a] px-6 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors group-hover:bg-transparent group-hover:text-black">
-              {isRegistered ? 'Pro Dashboard' : 'Join Platform'}
+        <div className="flex items-center gap-6">
+          {user ? (
+            <div className="flex items-center gap-4">
+              <div className="hidden lg:block text-right">
+                <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Wallet Connected</div>
+                <div className="text-[11px] font-mono text-emerald-400">{user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}</div>
+              </div>
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="relative h-12 overflow-hidden rounded-xl bg-white px-8 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+              >
+                <span className="relative z-10">Dashboard</span>
+              </button>
             </div>
-          </button>
+          ) : (
+            <button 
+              onClick={() => router.push('/register')}
+              className="relative h-12 overflow-hidden rounded-xl bg-white px-8 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+            >
+              <span className="relative z-10">Launch App</span>
+            </button>
+          )}
         </div>
       </div>
     </nav>

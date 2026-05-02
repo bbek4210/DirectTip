@@ -12,11 +12,12 @@ export default function Dashboard() {
     const fetchTips = async (creatorWallet: string) => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/tips?creator=${creatorWallet}`);
+            const res = await fetch(`/api/tips?creatorId=${creatorWallet}`);
             const data = await res.json();
-            setTips(data);
+            const tipsArray = data.tips || [];
+            setTips(tipsArray);
             
-            const total = data.reduce((acc: number, tip: any) => acc + (tip.token === 'SOL' ? parseFloat(tip.amount) : 0), 0);
+            const total = tipsArray.reduce((acc: number, tip: any) => acc + (tip.token === 'SOL' ? parseFloat(tip.amount) : 0), 0);
             setTotalSol(total);
         } catch (err) {
             console.error("Failed to fetch tips", err);
@@ -65,8 +66,8 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
                     {[
                         { label: "Total Earnings", val: `${totalSol.toFixed(2)} SOL`, icon: "◎", color: "text-solana-green" },
-                        { label: "Total Tips Received", val: tips.length, icon: "⚡", color: "text-solana-purple" },
-                        { label: "Unique Supporters", val: new Set(tips.map(t => t.senderWallet)).size, icon: "👥", color: "text-white" }
+                        { label: "Total Tips Received", val: tips?.length || 0, icon: "⚡", color: "text-solana-purple" },
+                        { label: "Unique Supporters", val: new Set(tips?.map(t => t.senderWallet) || []).size, icon: "👥", color: "text-white" }
                     ].map((stat, i) => (
                         <div key={i} className="glass p-8 rounded-[32px] border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
                             <div className={`absolute top-0 right-0 p-8 text-4xl opacity-10 group-hover:opacity-20 transition-opacity`}>{stat.icon}</div>

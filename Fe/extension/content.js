@@ -1,5 +1,7 @@
 // DirectTip Content Script
-console.log("DirectTip: Initializing Floating Icon Flow...");
+console.log("DirectTip: Initializing Premium Flow...");
+
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const OVERLAY_HTML = `
 <div id="direct-tip-overlay">
@@ -21,6 +23,12 @@ const OVERLAY_HTML = `
             </div>
 
             <div id="dt-tip-section" class="hidden">
+                <div id="dt-creator-info" style="margin-bottom: 12px; padding: 10px; border-radius: 8px; background: rgba(20,241,149,0.05); border: 1px solid rgba(20,241,149,0.1);">
+                    <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Recipient</div>
+                    <div id="dt-creator-name" style="font-weight: bold; color: var(--solana-green); font-size: 14px;">Detecting...</div>
+                    <div id="dt-creator-wallet" style="font-size: 9px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis;"></div>
+                </div>
+
                 <div class="dt-token-grid">
                     <div class="dt-token-option active" data-token="SOL">
                         <div class="dt-token-icon">◎</div>
@@ -37,7 +45,7 @@ const OVERLAY_HTML = `
                     <button class="dt-btn" id="dt-send-btn">Confirm Tip</button>
                 </div>
                 <div style="margin-top: 12px; font-size: 11px; color: var(--text-dim); display: flex; justify-content: space-between;">
-                    <span>Wallet: <span id="dt-wallet-addr" style="color: var(--solana-green);"></span></span>
+                    <span>My Wallet: <span id="dt-user-wallet" style="color: var(--solana-purple);"></span></span>
                     <span id="dt-balance" style="opacity: 0.7;"></span>
                 </div>
             </div>
@@ -56,6 +64,7 @@ const OVERLAY_HTML = `
 `;
 
 let selectedToken = 'SOL';
+let currentCreatorWallet = null;
 
 function injectOverlay() {
     if (document.getElementById('direct-tip-overlay')) return;
@@ -63,6 +72,45 @@ function injectOverlay() {
     container.innerHTML = OVERLAY_HTML;
     document.body.appendChild(container);
     setupEventListeners();
+    detectCreator();
+}
+
+async function detectCreator() {
+    // Try to find the channel ID from the page
+    let channelId = null;
+    
+    // Method 1: Check meta tags
+    const metaChannel = document.querySelector('meta[itemprop="channelId"]');
+    if (metaChannel) channelId = metaChannel.content;
+
+    // Method 2: Check links
+    if (!channelId) {
+        const channelLink = document.querySelector('ytd-video-owner-renderer a.yt-simple-endpoint');
+        if (channelLink) {
+            const parts = channelLink.href.split('/');
+            channelId = parts[parts.length - 1];
+        }
+    }
+
+    if (channelId) {
+        console.log("DirectTip: Detected Channel ID:", channelId);
+        try {
+            const res = await fetch(`${API_BASE_URL}/creator/${channelId}`);
+            const data = await res.json();
+            if (data.creator) {
+                currentCreatorWallet = data.creator.walletAddress;
+                document.getElementById('dt-creator-name').innerText = "Verified Creator";
+                document.getElementById('dt-creator-wallet').innerText = currentCreatorWallet;
+                document.getElementById('dt-send-btn').disabled = false;
+            } else {
+                document.getElementById('dt-creator-name').innerText = "Creator Not Registered";
+                document.getElementById('dt-creator-wallet').innerText = "Tips cannot be sent yet.";
+                document.getElementById('dt-send-btn').disabled = true;
+            }
+        } catch (err) {
+            console.error("DirectTip: Error fetching creator:", err);
+        }
+    }
 }
 
 function setupEventListeners() {
@@ -113,20 +161,26 @@ function setupEventListeners() {
         const amount = document.getElementById('dt-amount').value;
         if (!amount || amount <= 0) return alert("Please enter a valid amount");
         
-        chrome.storage.local.get(['creatorWallet'], (data) => {
-            if (!data.creatorWallet) {
-                return alert("Please configure the creator wallet in the extension popup first!");
-            }
-            
-            window.postMessage({ 
-                type: 'DT_SEND_TIP', 
-                amount: parseFloat(amount),
-                token: selectedToken,
-                creatorWallet: data.creatorWallet
-            }, '*');
-        });
+        if (!currentCreatorWallet) {
+            return alert("Creator wallet not detected for this channel.");
+        }
+        
+        window.postMessage({ 
+            type: 'DT_SEND_TIP', 
+            amount: parseFloat(amount),
+            token: selectedToken,
+            creatorWallet: currentCreatorWallet
+        }, '*');
     });
 }
+
+// Sync Listener from Website
+window.addEventListener('DIRECTTIP_SYNC', (event) => {
+    const details = event.detail;
+    chrome.storage.local.set({ userDetails: details }, () => {
+        console.log("DirectTip: Sync successful", details);
+    });
+});
 
 window.addEventListener('message', (event) => {
     if (event.source !== window) return;
@@ -136,7 +190,7 @@ window.addEventListener('message', (event) => {
         case 'DT_WALLET_CONNECTED':
             document.getElementById('dt-wallet-section').classList.add('hidden');
             document.getElementById('dt-tip-section').classList.remove('hidden');
-            document.getElementById('dt-wallet-addr').innerText = payload.address.slice(0, 4) + '...' + payload.address.slice(-4);
+            document.getElementById('dt-user-wallet').innerText = payload.address.slice(0, 4) + '...' + payload.address.slice(-4);
             break;
             
         case 'DT_TIP_PENDING':
@@ -198,9 +252,7 @@ function injectBridge() {
     (document.head || document.documentElement).appendChild(bridgeScript);
 }
 
-// Inject Send Tip button next to YouTube subscribe button
 function injectYouTubeButton() {
-    // Find the subscribe button
     const subscribeBtn = document.querySelector('ytd-subscribe-button-renderer button, yt-formatted-string[aria-label*="Subscribe"]')?.closest('button');
     
     if (!subscribeBtn || document.getElementById('dt-youtube-btn')) return;
@@ -208,14 +260,15 @@ function injectYouTubeButton() {
     const tipsBtn = document.createElement('button');
     tipsBtn.id = 'dt-youtube-btn';
     tipsBtn.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 6px; padding: 0 12px; height: 36px; background: linear-gradient(135deg, #9945FF, #14F195); border: none; border-radius: 20px; cursor: pointer; font-weight: 600; color: #000; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 6px; padding: 0 12px; height: 36px; background: linear-gradient(135deg, #9945FF, #14F195); border: none; border-radius: 20px; cursor: pointer; font-weight: 600; color: #000; font-size: 14px; margin-left: 8px;">
             <span>💎</span>
             <span>Send Tip</span>
         </div>
     `;
     
     tipsBtn.addEventListener('click', () => {
-        document.getElementById('dt-toggle-icon')?.click();
+        const toggleIcon = document.getElementById('dt-toggle-icon');
+        if (toggleIcon) toggleIcon.click();
     });
     
     subscribeBtn.parentNode?.insertBefore(tipsBtn, subscribeBtn.nextSibling);

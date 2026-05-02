@@ -1,14 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
+dotenv.config();
+
 import { connectDB } from './db/connection';
 import { config } from './config';
 import authRoutes from './routes/auth';
 import creatorRoutes from './routes/creator';
 import tipRoutes from './routes/tips';
 import { requestLogger, errorHandler } from './middleware/errorHandler';
-
-dotenv.config();
 
 const app = express();
 

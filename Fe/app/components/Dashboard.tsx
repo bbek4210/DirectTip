@@ -24,8 +24,8 @@ export default function Dashboard() {
   }, [user]);
 
   useEffect(() => {
-    if (tipsData?.tips) {
-      setTips(tipsData.tips);
+    if (tipsData) {
+      setTips(tipsData);
     }
   }, [tipsData, setTips]);
 
@@ -45,7 +45,7 @@ export default function Dashboard() {
   };
 
   const totalDonations = tips.reduce((sum, tip) => sum + tip.amount, 0);
-  const stats = statsData?.stats;
+  const stats = statsData;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white p-8">

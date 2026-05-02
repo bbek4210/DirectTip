@@ -1,135 +1,185 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useRegisterMutation } from '../hooks/useAuth';
-import { useAuthStore } from '../store/authStore';
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
-  const { setUser } = useAuthStore();
-  const [email, setEmail] = useState('');
-  const [walletAddress, setWalletAddress] = useState('');
-  const [role, setRole] = useState<'creator' | 'viewer'>('viewer');
-  const [error, setError] = useState('');
+  const searchParams = useSearchParams();
+  const initialRole = searchParams.get('role') || 'viewer';
 
-  const registerMutation = useRegisterMutation();
+  const [role, setRole] = useState(initialRole);
+  const [email, setEmail] = useState("");
+  const [walletAddress, setWalletAddress] = useState("");
+  const [youtubeChannelId, setYoutubeChannelId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleConnectWallet = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      // @ts-ignore
-      const { solana } = window;
-      if (!solana) {
-        setError('Please install Phantom wallet');
-        return;
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, walletAddress, role }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || "Registration failed");
+
+      if (role === 'creator') {
+         // Update creator details if needed (youtubeChannelId)
+         await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/creator/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: data.user._id, walletAddress, youtubeChannelId }),
+         });
       }
 
-      const resp = await solana.connect();
-      setWalletAddress(resp.publicKey.toString());
-    } catch (err) {
-      setError('Failed to connect wallet');
+      setSuccess(true);
+      localStorage.setItem('directTip_user', JSON.stringify(data.user));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!email || !walletAddress) {
-      setError('Please fill in all fields and connect wallet');
-      return;
-    }
-
-    try {
-      const user = await registerMutation.mutateAsync({
+  const handleSync = () => {
+    // Dispatch a custom event that the extension can listen for
+    const event = new CustomEvent('DIRECTTIP_SYNC', {
+      detail: {
+        role,
         email,
         walletAddress,
-        role,
-      });
-      setUser(user);
-      router.push(role === 'creator' ? '/dashboard' : '/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
-    }
+        youtubeChannelId
+      }
+    });
+    window.dispatchEvent(event);
+    alert("Syncing with extension... Please make sure the extension is installed.");
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-gray-800 rounded-lg p-8 border border-purple-500">
-        <h1 className="text-3xl font-bold text-white mb-2">Join DirectTip</h1>
-        <p className="text-gray-400 mb-6">Create your account to get started</p>
-
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600 focus:border-purple-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">Solana Wallet</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={walletAddress}
-                readOnly
-                placeholder="Connect your wallet"
-                className="flex-1 bg-gray-700 text-gray-400 px-4 py-2 rounded border border-gray-600"
-              />
-              <button
-                type="button"
-                onClick={handleConnectWallet}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded font-bold"
-              >
-                Connect
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">Account Type</label>
-            <div className="space-y-2">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="role"
-                  value="creator"
-                  checked={role === 'creator'}
-                  onChange={(e) => setRole(e.target.value as 'creator' | 'viewer')}
-                  className="mr-3"
-                />
-                <span className="text-gray-300">Creator (Receive tips)</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="role"
-                  value="viewer"
-                  checked={role === 'viewer'}
-                  onChange={(e) => setRole(e.target.value as 'creator' | 'viewer')}
-                  className="mr-3"
-                />
-                <span className="text-gray-300">Viewer (Send tips)</span>
-              </label>
-            </div>
-          </div>
-
-          {error && <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded">{error}</div>}
-
-          <button
-            type="submit"
-            disabled={registerMutation.isPending}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded mt-6 disabled:opacity-50"
-          >
-            {registerMutation.isPending ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </form>
+  if (success) {
+    return (
+      <div className="glass-card p-12 rounded-[40px] text-center max-w-xl w-full animate-fade-in">
+        <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-4xl mx-auto mb-8 border border-emerald-500/30 text-emerald-400">✓</div>
+        <h2 className="text-4xl font-black mb-4">Registration Complete!</h2>
+        <p className="text-zinc-400 mb-10 text-lg">Your account has been created successfully. Now, sync your details with the Chrome extension to start tipping.</p>
+        
+        <button 
+          onClick={handleSync}
+          className="w-full h-16 rounded-2xl bg-solana-gradient text-black font-bold text-lg mb-4 hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-emerald-500/20"
+        >
+          Sync with Extension
+        </button>
+        <button 
+          onClick={() => router.push('/')}
+          className="w-full h-16 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-all"
+        >
+          Back to Home
+        </button>
       </div>
+    );
+  }
+
+  return (
+    <div className="glass-card p-10 sm:p-12 rounded-[40px] max-w-xl w-full border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <div className={`w-32 h-32 rounded-full blur-3xl ${role === 'creator' ? 'bg-emerald-500' : 'bg-purple-500'}`} />
+      </div>
+
+      <h2 className="text-4xl font-black mb-2">Create Account</h2>
+      <p className="text-zinc-500 mb-10">Join the DirectTip ecosystem as a {role}.</p>
+
+      <div className="flex gap-4 mb-10 p-1 bg-white/5 rounded-2xl border border-white/5">
+        <button 
+          onClick={() => setRole('viewer')}
+          className={`flex-1 py-3 rounded-xl font-bold transition-all ${role === 'viewer' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+        >
+          Viewer
+        </button>
+        <button 
+          onClick={() => setRole('creator')}
+          className={`flex-1 py-3 rounded-xl font-bold transition-all ${role === 'creator' ? 'bg-white text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+        >
+          Creator
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+          <input 
+            type="email" 
+            required
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full h-14 glass-input rounded-2xl px-6 text-lg"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 ml-1">Solana Wallet Address</label>
+          <input 
+            type="text" 
+            required
+            placeholder="Paste your SOL wallet address"
+            value={walletAddress}
+            onChange={(e) => setWalletAddress(e.target.value)}
+            className="w-full h-14 glass-input rounded-2xl px-6 text-lg font-mono"
+          />
+        </div>
+
+        {role === 'creator' && (
+          <div className="animate-fade-in">
+            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 ml-1">YouTube Channel ID / URL</label>
+            <input 
+              type="text" 
+              required
+              placeholder="e.g. UC-lHJZR3Gqxm24_Vd_AJ5Yw"
+              value={youtubeChannelId}
+              onChange={(e) => setYoutubeChannelId(e.target.value)}
+              className="w-full h-14 glass-input rounded-2xl px-6 text-lg font-mono"
+            />
+            <p className="mt-2 text-[10px] text-zinc-600 px-1 italic">This links your YouTube presence to your wallet for automatic tip detection.</p>
+          </div>
+        )}
+
+        {error && <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">{error}</div>}
+
+        <button 
+          type="submit" 
+          disabled={loading}
+          className="w-full h-16 rounded-2xl bg-white text-black font-black text-xl hover:scale-[1.02] transition-transform active:scale-95 disabled:opacity-50 mt-4 shadow-xl shadow-white/5"
+        >
+          {loading ? "Registering..." : "Complete Registration"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 relative overflow-hidden">
+      <div className="noise-bg" />
+      <div className="absolute top-[-20%] left-[-10%] h-[1000px] w-[1000px] rounded-full bg-purple-600/5 blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] h-[1000px] w-[1000px] rounded-full bg-emerald-500/5 blur-[150px] pointer-events-none" />
+      
+      <Link href="/" className="absolute top-10 left-10 text-zinc-500 hover:text-white flex items-center gap-2 font-bold transition-colors group">
+        <span className="transition-transform group-hover:-translate-x-1">←</span> Back
+      </Link>
+
+      <Suspense fallback={<div className="text-white">Loading...</div>}>
+        <RegisterForm />
+      </Suspense>
     </div>
   );
 }

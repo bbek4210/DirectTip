@@ -9,8 +9,8 @@ export default function TipOverlay({ creatorId }: { creatorId: string }) {
   const { data: tipsData } = useOverlayTips(creatorId);
 
   useEffect(() => {
-    if (tipsData?.tips && tipsData.tips.length > 0) {
-      const newTip = tipsData.tips[0];
+    if (tipsData && tipsData.length > 0) {
+      const newTip = tipsData[0];
       if (!displayTip || newTip._id !== displayTip._id) {
         setDisplayTip(newTip);
         setTimeout(() => setDisplayTip(null), 5000);

@@ -1,29 +1,32 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const walletInput = document.getElementById('creator-wallet');
-    const streamInput = document.getElementById('stream-url');
-    const saveBtn = document.getElementById('save-btn');
-    const status = document.getElementById('status');
+    const syncBox = document.getElementById('sync-box');
+    const syncText = document.getElementById('sync-text');
+    const userInfo = document.getElementById('user-info');
+    const walletVal = document.getElementById('wallet-val');
+    const roleTag = document.getElementById('role-tag');
+    const dashBtn = document.getElementById('dash-btn');
 
     // Load saved settings
-    chrome.storage.local.get(['creatorWallet', 'streamUrl'], (data) => {
-        if (data.creatorWallet) walletInput.value = data.creatorWallet;
-        if (data.streamUrl) streamInput.value = data.streamUrl;
+    chrome.storage.local.get(['userDetails'], (data) => {
+        if (data.userDetails) {
+            const { walletAddress, role } = data.userDetails;
+            
+            syncBox.classList.remove('not-synced');
+            syncText.innerText = 'Account Synced';
+            
+            userInfo.style.display = 'block';
+            walletVal.innerText = walletAddress.slice(0, 10) + '...' + walletAddress.slice(-10);
+            roleTag.innerText = role;
+            roleTag.style.background = role === 'creator' ? '#14F195' : '#9945FF';
+            roleTag.style.color = role === 'creator' ? 'black' : 'white';
+        }
     });
 
-    saveBtn.addEventListener('click', () => {
-        const creatorWallet = walletInput.value.trim();
-        const streamUrl = streamInput.value.trim();
+    dashBtn.addEventListener('click', () => {
+        window.open('http://localhost:3000/dashboard', '_blank');
+    });
 
-        if (!creatorWallet) {
-            alert("Wallet address is required!");
-            return;
-        }
-
-        chrome.storage.local.set({ creatorWallet, streamUrl }, () => {
-            status.style.display = 'block';
-            setTimeout(() => {
-                status.style.display = 'none';
-            }, 2000);
-        });
+    document.getElementById('sync-btn').addEventListener('click', () => {
+        window.open('http://localhost:3000/register', '_blank');
     });
 });

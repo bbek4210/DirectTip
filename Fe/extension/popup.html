@@ -1,78 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DirectTip Settings</title>
+    <title>DirectTip</title>
     <style>
         body {
-            width: 300px;
-            padding: 20px;
-            background: #0f0f0f;
+            width: 320px;
+            padding: 24px;
+            background: #050505;
             color: white;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             margin: 0;
         }
-        h2 {
-            font-size: 18px;
-            margin-top: 0;
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .logo {
+            width: 32px;
+            height: 32px;
             background: linear-gradient(135deg, #9945FF, #14F195);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            font-size: 12px;
-            color: #b0b0b0;
-            margin-bottom: 5px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            background: #1a1a1a;
-            border: 1px solid #333;
             border-radius: 8px;
-            color: white;
-            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: black;
+            font-size: 16px;
+        }
+        h2 {
+            font-size: 20px;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .sync-status {
+            background: rgba(20, 241, 149, 0.1);
+            border: 1px solid rgba(20, 241, 149, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 12px;
+            color: #14F195;
         }
-        input:focus {
-            border-color: #9945FF;
-            outline: none;
+        .sync-status.not-synced {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #b0b0b0;
         }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #14F195;
+        }
+        .not-synced .dot { background: #b0b0b0; }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .label {
+            font-size: 10px;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #eee;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        .role-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            background: #9945FF;
+            color: white;
+            margin-top: 8px;
+        }
+
         button {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #9945FF, #14F195);
+            padding: 14px;
+            background: white;
             border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
+            border-radius: 12px;
+            color: black;
+            font-weight: 700;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            transform: scale(1.02);
+        }
+        .secondary-btn {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             margin-top: 10px;
         }
-        .status {
-            font-size: 11px;
-            text-align: center;
-            margin-top: 10px;
-            color: #14F195;
-            display: none;
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
     </style>
 </head>
 <body>
-    <h2>DirectTip</h2>
-    <div class="form-group">
-        <label>Creator Solana Wallet</label>
-        <input type="text" id="creator-wallet" placeholder="Enter wallet address...">
+    <div class="header">
+        <div class="logo">DT</div>
+        <h2>DirectTip</h2>
     </div>
-    <div class="form-group">
-        <label>Stream URL (Optional)</label>
-        <input type="text" id="stream-url" placeholder="YouTube Live URL...">
+
+    <div id="sync-box" class="sync-status not-synced">
+        <div class="dot"></div>
+        <span id="sync-text">Account Not Synced</span>
     </div>
-    <button id="save-btn">Save Configuration</button>
-    <div id="status" class="status">Settings saved!</div>
+
+    <div id="user-info" class="info-card" style="display: none;">
+        <div class="label">Wallet Address</div>
+        <div id="wallet-val" class="value">...</div>
+        <div id="role-tag" class="role-tag">Viewer</div>
+    </div>
+
+    <button id="dash-btn">Open Dashboard</button>
+    <button id="sync-btn" class="secondary-btn">How to Sync?</button>
     
     <script src="popup.js"></script>
 </body>
