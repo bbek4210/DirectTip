@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Tip, Creator } from '../db/models';
 
 export const createTip = async (req: Request, res: Response) => {
@@ -9,6 +10,16 @@ export const createTip = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'senderWallet, receiverWallet, and amount required' });
     }
 
+    let finalCreatorId = creatorId;
+
+    // If no creatorId provided, try to find creator by receiverWallet
+    if (!finalCreatorId && receiverWallet) {
+      const creator = await Creator.findOne({ walletAddress: receiverWallet });
+      if (creator) {
+        finalCreatorId = creator._id;
+      }
+    }
+
     const tip = new Tip({
       senderWallet,
       receiverWallet,
@@ -17,15 +28,15 @@ export const createTip = async (req: Request, res: Response) => {
       message,
       txSignature,
       status: 'pending',
-      creatorId,
+      creatorId: finalCreatorId,
     });
 
     await tip.save();
 
     // Update creator's total donations
-    if (creatorId) {
+    if (finalCreatorId) {
       await Creator.findByIdAndUpdate(
-        creatorId,
+        finalCreatorId,
         { $inc: { totalDonations: amount } }
       );
     }
@@ -40,8 +51,13 @@ export const createTip = async (req: Request, res: Response) => {
 export const getTipsByCreator = async (req: Request, res: Response) => {
   try {
     const { creatorId } = req.params;
+    const isObjectId = mongoose.Types.ObjectId.isValid(creatorId);
+    
+    const query = isObjectId 
+      ? { creatorId } 
+      : { receiverWallet: creatorId };
 
-    const tips = await Tip.find({ creatorId })
+    const tips = await Tip.find(query)
       .sort({ createdAt: -1 })
       .limit(100);
 
@@ -55,11 +71,13 @@ export const getTipsByCreator = async (req: Request, res: Response) => {
 export const getOverlayTips = async (req: Request, res: Response) => {
   try {
     const { creatorId } = req.params;
+    const isObjectId = mongoose.Types.ObjectId.isValid(creatorId);
+    
+    const query = isObjectId 
+      ? { creatorId, status: 'confirmed' } 
+      : { receiverWallet: creatorId, status: 'confirmed' };
 
-    const tips = await Tip.find({
-      creatorId,
-      status: 'confirmed',
-    })
+    const tips = await Tip.find(query)
       .sort({ createdAt: -1 })
       .limit(50);
 
@@ -95,12 +113,17 @@ export const updateTipStatus = async (req: Request, res: Response) => {
 export const getTipStats = async (req: Request, res: Response) => {
   try {
     const { creatorId } = req.params;
+    const isObjectId = mongoose.Types.ObjectId.isValid(creatorId);
+
+    const matchQuery = isObjectId
+      ? { creatorId: new mongoose.Types.ObjectId(creatorId) }
+      : { receiverWallet: creatorId };
 
     const stats = await Tip.aggregate([
-      { $match: { creatorId: require('mongoose').Types.ObjectId(creatorId) } },
+      { $match: matchQuery },
       {
         $group: {
-          _id: '$creatorId',
+          _id: isObjectId ? '$creatorId' : '$receiverWallet',
           totalAmount: { $sum: '$amount' },
           totalCount: { $sum: 1 },
           avgAmount: { $avg: '$amount' },
