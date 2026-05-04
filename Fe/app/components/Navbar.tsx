@@ -19,6 +19,56 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [pathname]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('directTip_user');
+    setUser(null);
+    router.push('/');
+    // Tell extension to clear state too
+    window.postMessage({ type: 'DIRECTTIP_LOGOUT' }, '*');
+  };
+
+  const handleLoginWithWallet = async () => {
+    try {
+      if (!(window as any).solana) {
+        alert("Please install Phantom wallet!");
+        return;
+      }
+      const resp = await (window as any).solana.connect({ onlyIfTrusted: false });
+      const wallet = resp.publicKey.toString();
+
+      // Check if wallet is registered in backend
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5001';
+      const res = await fetch(`${baseUrl}/api/creator/${wallet}`);
+      const data = await res.json();
+
+      if (data.creator) {
+        // Log them in
+        const userData = { ...data.creator.userId, walletAddress: wallet, role: 'creator' };
+        localStorage.setItem('directTip_user', JSON.stringify(userData));
+        setUser(userData);
+        router.push('/dashboard');
+      } else {
+        // Not registered, send to register page with wallet filled
+        router.push(`/register?wallet=${wallet}`);
+      }
+    } catch (err) {
+      console.error("Login failed", err);
+    }
+  };
+
+  const handleSync = () => {
+    if (!user) return;
+    window.postMessage({
+      type: 'DIRECTTIP_SYNC_REQUEST',
+      payload: {
+        role: user.role,
+        email: user.email,
+        walletAddress: user.walletAddress,
+        youtubeChannelId: user.youtubeChannelId || ''
+      }
+    }, '*');
+  };
+
   return (
     <nav className={`fixed top-0 z-[100] w-full transition-all duration-500 ${scrolled || pathname !== '/' ? 'border-b border-white/5 bg-black/40 backdrop-blur-2xl py-4' : 'bg-transparent py-8'}`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
@@ -32,6 +82,7 @@ export default function Navbar() {
           {user && (
             <>
               <Link href="/dashboard" className={`transition-all hover:text-white ${pathname === '/dashboard' ? 'text-emerald-400' : ''}`}>Dashboard</Link>
+              <button onClick={handleSync} className="transition-all hover:text-emerald-400 text-zinc-500 uppercase font-black">Sync Extension</button>
               {user.role === 'creator' && (
                 <Link href={`/overlay/${user._id}`} className={`transition-all hover:text-white ${pathname.includes('/overlay') ? 'text-emerald-400' : ''}`}>Creator Overlay</Link>
               )}
@@ -51,6 +102,12 @@ export default function Navbar() {
                 <div className="text-[11px] font-mono text-emerald-400">{user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}</div>
               </div>
               <button 
+                onClick={handleLogout}
+                className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-red-400 transition-colors"
+              >
+                Logout
+              </button>
+              <button 
                 onClick={() => router.push('/dashboard')}
                 className="relative h-12 overflow-hidden rounded-xl bg-white px-8 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
               >
@@ -59,10 +116,10 @@ export default function Navbar() {
             </div>
           ) : (
             <button 
-              onClick={() => router.push('/register')}
+              onClick={handleLoginWithWallet}
               className="relative h-12 overflow-hidden rounded-xl bg-white px-8 text-[11px] font-black uppercase tracking-widest text-black transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
             >
-              <span className="relative z-10">Launch App</span>
+              <span className="relative z-10">Connect Wallet</span>
             </button>
           )}
         </div>

@@ -1,7 +1,7 @@
 // DirectTip Content Script
 console.log("DirectTip: Initializing Premium Flow...");
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 const OVERLAY_HTML = `
 <div id="direct-tip-overlay">
@@ -65,6 +65,7 @@ const OVERLAY_HTML = `
 
 let selectedToken = 'SOL';
 let currentCreatorWallet = null;
+let lastDetectedChannelId = null;
 
 function injectOverlay() {
     if (document.getElementById('direct-tip-overlay')) return;
@@ -72,43 +73,60 @@ function injectOverlay() {
     container.innerHTML = OVERLAY_HTML;
     document.body.appendChild(container);
     setupEventListeners();
-    detectCreator();
 }
 
 async function detectCreator() {
     // Try to find the channel ID from the page
     let channelId = null;
     
-    // Method 1: Check meta tags
+    // Method 1: Check meta tags (Works on most pages)
     const metaChannel = document.querySelector('meta[itemprop="channelId"]');
     if (metaChannel) channelId = metaChannel.content;
 
-    // Method 2: Check links
+    // Method 2: Check links in owner section
     if (!channelId) {
-        const channelLink = document.querySelector('ytd-video-owner-renderer a.yt-simple-endpoint');
-        if (channelLink) {
-            const parts = channelLink.href.split('/');
-            channelId = parts[parts.length - 1];
+        const channelLink = document.querySelector('ytd-video-owner-renderer a.yt-simple-endpoint, #owner-name a, #channel-name a');
+        if (channelLink && channelLink.href.includes('/@')) {
+            // Handle @handle format
+            channelId = channelLink.href.split('/').pop();
+        } else if (channelLink && channelLink.href.includes('/channel/')) {
+            channelId = channelLink.href.split('/').pop();
         }
     }
 
-    if (channelId) {
-        console.log("DirectTip: Detected Channel ID:", channelId);
+    // Method 3: Check URL for channel pages
+    if (!channelId && (window.location.href.includes('/@') || window.location.href.includes('/channel/'))) {
+        channelId = window.location.href.split('/').pop().split('?')[0];
+    }
+
+    if (channelId && channelId !== lastDetectedChannelId) {
+        lastDetectedChannelId = channelId;
+        console.log("DirectTip: Detecting Creator for Channel:", channelId);
+        
+        const nameEl = document.getElementById('dt-creator-name');
+        const walletEl = document.getElementById('dt-creator-wallet');
+        const sendBtn = document.getElementById('dt-send-btn');
+
+        if (nameEl) nameEl.innerText = "Verifying...";
+        
         try {
             const res = await fetch(`${API_BASE_URL}/creator/${channelId}`);
             const data = await res.json();
+            
             if (data.creator) {
                 currentCreatorWallet = data.creator.walletAddress;
-                document.getElementById('dt-creator-name').innerText = "Verified Creator";
-                document.getElementById('dt-creator-wallet').innerText = currentCreatorWallet;
-                document.getElementById('dt-send-btn').disabled = false;
+                if (nameEl) nameEl.innerText = "Verified Creator";
+                if (walletEl) walletEl.innerText = currentCreatorWallet;
+                if (sendBtn) sendBtn.disabled = false;
             } else {
-                document.getElementById('dt-creator-name').innerText = "Creator Not Registered";
-                document.getElementById('dt-creator-wallet').innerText = "Tips cannot be sent yet.";
-                document.getElementById('dt-send-btn').disabled = true;
+                currentCreatorWallet = null;
+                if (nameEl) nameEl.innerText = "Not Registered";
+                if (walletEl) walletEl.innerText = "This creator hasn't joined yet.";
+                if (sendBtn) sendBtn.disabled = true;
             }
         } catch (err) {
             console.error("DirectTip: Error fetching creator:", err);
+            if (nameEl) nameEl.innerText = "Detection Error";
         }
     }
 }
@@ -174,18 +192,30 @@ function setupEventListeners() {
     });
 }
 
-// Sync Listener from Website
-window.addEventListener('DIRECTTIP_SYNC', (event) => {
-    const details = event.detail;
-    chrome.storage.local.set({ userDetails: details }, () => {
-        console.log("DirectTip: Sync successful", details);
-    });
-});
-
 window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     const { type, payload } = event.data;
 
+    // Handle Sync from Website
+    if (type === 'DIRECTTIP_SYNC_REQUEST') {
+        const details = payload;
+        chrome.storage.local.set({ userDetails: details }, () => {
+            console.log("DirectTip: Sync successful", details);
+            alert("✅ Account Synced with Extension!");
+        });
+        return;
+    }
+
+    // Handle Logout from Website
+    if (type === 'DIRECTTIP_LOGOUT') {
+        chrome.storage.local.remove(['userDetails'], () => {
+            console.log("DirectTip: Logged out, state cleared");
+            window.location.reload(); // Refresh to update popup/overlay state
+        });
+        return;
+    }
+
+    // Handle Wallet/Transaction events from Bridge
     switch (type) {
         case 'DT_WALLET_CONNECTED':
             document.getElementById('dt-wallet-section').classList.add('hidden');
@@ -275,10 +305,16 @@ function injectYouTubeButton() {
 }
 
 setInterval(() => {
-    if (window.location.href.includes('watch?v=')) {
+    const isYouTube = window.location.hostname.includes('youtube.com');
+    const isDirectTip = window.location.hostname.includes('localhost');
+    
+    if (isYouTube) {
         injectOverlay();
         injectYouTubeButton();
+        detectCreator();
     }
 }, 2000);
 
-injectBridge();
+if (window.location.hostname.includes('youtube.com')) {
+    injectBridge();
+}

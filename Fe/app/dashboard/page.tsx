@@ -9,6 +9,21 @@ export default function Dashboard() {
     const [wallet, setWallet] = useState("");
     const [totalSol, setTotalSol] = useState(0);
 
+    const [user, setUser] = useState<any>(null);
+
+    const handleSync = () => {
+        if (!user) return;
+        window.postMessage({
+            type: 'DIRECTTIP_SYNC_REQUEST',
+            payload: {
+                role: user.role,
+                email: user.email,
+                walletAddress: user.walletAddress,
+                youtubeChannelId: user.youtubeChannelId || ''
+            }
+        }, '*');
+    };
+
     const fetchTips = async (creatorWallet: string) => {
         setLoading(true);
         try {
@@ -27,12 +42,14 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        const saved = localStorage.getItem('directTip_registered');
+        const saved = localStorage.getItem('directTip_user');
         if (saved) {
             const data = JSON.parse(saved);
+            setUser(data);
             if (data.role === 'creator') {
-                setWallet(data.wallet);
-                fetchTips(data.wallet);
+                const w = data.walletAddress || data.wallet;
+                setWallet(w);
+                fetchTips(w);
             }
         } else {
             setLoading(false);
@@ -80,7 +97,15 @@ export default function Dashboard() {
                 {/* Tip Table */}
                 <div className="glass rounded-[40px] border-white/5 overflow-hidden shadow-2xl relative">
                     <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                        <h2 className="font-black italic uppercase tracking-tighter text-xl">Recent Transactions</h2>
+                        <div className="flex items-center gap-6">
+                            <h2 className="font-black italic uppercase tracking-tighter text-xl">Recent Transactions</h2>
+                            <button 
+                                onClick={handleSync}
+                                className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-black transition-all"
+                            >
+                                Sync with Extension
+                            </button>
+                        </div>
                         <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">Updated Just Now</div>
                     </div>
                     

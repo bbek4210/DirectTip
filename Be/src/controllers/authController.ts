@@ -12,22 +12,31 @@ export const register = async (req: Request, res: Response) => {
     let user = await User.findOne({ email });
 
     if (user) {
-      return res.json({ user });
+      // Update existing user's role/wallet if they are re-registering
+      user.role = role || user.role;
+      user.walletAddress = walletAddress || user.walletAddress;
+      await user.save();
+    } else {
+      user = new User({ email, walletAddress, role });
+      await user.save();
     }
 
-    user = new User({ email, walletAddress, role });
-    await user.save();
-
     if (role === 'creator') {
+      let creator = await Creator.findOne({ userId: user._id });
       const overlayUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/overlay/${user._id}`;
-      const creator = new Creator({ userId: user._id, walletAddress, overlayUrl });
+      
+      if (!creator) {
+        creator = new Creator({ userId: user._id, walletAddress, overlayUrl });
+      } else {
+        creator.walletAddress = walletAddress;
+      }
       await creator.save();
     }
 
     res.json({ user });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Failed to register user' });
+    res.status(500).json({ error: error.message || 'Failed to register user' });
   }
 };
 

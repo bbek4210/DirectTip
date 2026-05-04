@@ -15,7 +15,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/watch?v=*"],
+      "matches": [
+        "https://www.youtube.com/*",
+        "http://localhost:3000/*"
+      ],
       "js": ["lib/solana-web3.min.js", "content.js"],
       "css": ["styles.css"]
     }

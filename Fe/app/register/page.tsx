@@ -17,13 +17,39 @@ function RegisterForm() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  const [walletLoading, setWalletLoading] = useState(false);
+
+  useEffect(() => {
+    const walletParam = searchParams.get('wallet');
+    if (walletParam) {
+      setWalletAddress(walletParam);
+    }
+  }, [searchParams]);
+
+  const handleConnectWallet = async () => {
+    setWalletLoading(true);
+    try {
+      if (!(window as any).solana) {
+        alert("Phantom wallet not found! Please install it.");
+        return;
+      }
+      const resp = await (window as any).solana.connect({ onlyIfTrusted: false });
+      setWalletAddress(resp.publicKey.toString());
+    } catch (err) {
+      console.error("Connection failed:", err);
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/register`, {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5001';
+      const response = await fetch(`${baseUrl}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, walletAddress, role }),
@@ -35,7 +61,7 @@ function RegisterForm() {
 
       if (role === 'creator') {
          // Update creator details if needed (youtubeChannelId)
-         await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/creator/update`, {
+         await fetch(`${baseUrl}/api/creator/update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: data.user._id, walletAddress, youtubeChannelId }),
@@ -52,16 +78,16 @@ function RegisterForm() {
   };
 
   const handleSync = () => {
-    // Dispatch a custom event that the extension can listen for
-    const event = new CustomEvent('DIRECTTIP_SYNC', {
-      detail: {
+    // Use postMessage for more reliable communication with the content script
+    window.postMessage({
+      type: 'DIRECTTIP_SYNC_REQUEST',
+      payload: {
         role,
         email,
         walletAddress,
         youtubeChannelId
       }
-    });
-    window.dispatchEvent(event);
+    }, '*');
     alert("Syncing with extension... Please make sure the extension is installed.");
   };
 
@@ -127,14 +153,34 @@ function RegisterForm() {
 
         <div>
           <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 ml-1">Solana Wallet Address</label>
-          <input 
-            type="text" 
-            required
-            placeholder="Paste your SOL wallet address"
-            value={walletAddress}
-            onChange={(e) => setWalletAddress(e.target.value)}
-            className="w-full h-14 glass-input rounded-2xl px-6 text-lg font-mono"
-          />
+          <div className="relative group/input">
+            <input 
+              type="text" 
+              required
+              placeholder="Paste or connect your SOL wallet"
+              value={walletAddress}
+              onChange={(e) => setWalletAddress(e.target.value)}
+              className="w-full h-14 glass-input rounded-2xl px-6 pr-32 text-sm font-mono transition-all focus:border-emerald-500/50"
+            />
+            {walletAddress ? (
+              <button
+                type="button"
+                onClick={() => setWalletAddress("")}
+                className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-black transition-all"
+              >
+                Clear
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleConnectWallet}
+                disabled={walletLoading}
+                className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {walletLoading ? "..." : "Connect"}
+              </button>
+            )}
+          </div>
         </div>
 
         {role === 'creator' && (
@@ -161,6 +207,16 @@ function RegisterForm() {
         >
           {loading ? "Registering..." : "Complete Registration"}
         </button>
+
+        <div className="text-center mt-6">
+           <button 
+            type="button"
+            onClick={handleSync}
+            className="text-xs font-bold text-zinc-500 hover:text-emerald-400 uppercase tracking-widest transition-colors"
+           >
+            Already registered? <span className="underline underline-offset-4">Sync Extension Now</span>
+           </button>
+        </div>
       </form>
     </div>
   );
