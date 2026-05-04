@@ -50,7 +50,7 @@ export const createTip = async (req: Request, res: Response) => {
 
 export const getTipsByCreator = async (req: Request, res: Response) => {
   try {
-    const { creatorId } = req.params;
+    const creatorId = req.params.creatorId as string;
     const isObjectId = mongoose.Types.ObjectId.isValid(creatorId);
     
     const query = isObjectId 
@@ -70,7 +70,7 @@ export const getTipsByCreator = async (req: Request, res: Response) => {
 
 export const getOverlayTips = async (req: Request, res: Response) => {
   try {
-    const { creatorId } = req.params;
+    const creatorId = req.params.creatorId as string;
     const isObjectId = mongoose.Types.ObjectId.isValid(creatorId);
     
     const query = isObjectId 
@@ -112,7 +112,7 @@ export const updateTipStatus = async (req: Request, res: Response) => {
 
 export const getTipStats = async (req: Request, res: Response) => {
   try {
-    const { creatorId } = req.params;
+    const creatorId = req.params.creatorId as string;
     const isObjectId = mongoose.Types.ObjectId.isValid(creatorId);
 
     const matchQuery = isObjectId
