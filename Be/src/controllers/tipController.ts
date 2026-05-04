@@ -90,7 +90,7 @@ export const getOverlayTips = async (req: Request, res: Response) => {
 
 export const updateTipStatus = async (req: Request, res: Response) => {
   try {
-    const { tipId } = req.params;
+    const tipId = req.params.tipId as string;
     const { status } = req.body;
 
     if (!status || !['pending', 'confirmed', 'failed'].includes(status)) {

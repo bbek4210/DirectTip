@@ -3,7 +3,7 @@ import { Creator, User } from '../db/models';
 
 export const getCreatorByChannelId = async (req: Request, res: Response) => {
   try {
-    const { channelId } = req.params;
+    const channelId = req.params.channelId as string;
 
     const creator = await Creator.findOne({ youtubeChannelId: channelId }).populate('userId');
 
@@ -51,7 +51,7 @@ export const updateCreator = async (req: Request, res: Response) => {
 
 export const getCreatorById = async (req: Request, res: Response) => {
   try {
-    const { creatorId } = req.params;
+    const creatorId = req.params.creatorId as string;
 
     const creator = await Creator.findById(creatorId).populate('userId');
 
