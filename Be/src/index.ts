@@ -27,7 +27,7 @@ app.use('/api/creator', creatorRoutes);
 app.use('/api/tips', tipRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: express.Request, res: express.Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
