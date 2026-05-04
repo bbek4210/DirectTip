@@ -1,17 +1,8 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-
-let mongoServer: MongoMemoryServer;
 
 export const connectDB = async () => {
   try {
-    let mongoUri = process.env.MONGO_URI;
-
-    if (!mongoUri && process.env.NODE_ENV !== 'production') {
-      console.log('🔄 Starting in-memory MongoDB for development...');
-      mongoServer = await MongoMemoryServer.create();
-      mongoUri = mongoServer.getUri();
-    }
+    const mongoUri = process.env.MONGO_URI;
 
     if (mongoUri) {
       await mongoose.connect(mongoUri);
