@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-export async function GET(req: NextRequest, { params }: { params: { channelId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ channelId: string }> }) {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/creator/${params.channelId}`);
+    const { channelId } = await params;
+    const res = await fetch(`${BACKEND_URL}/api/creator/${channelId}`);
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
@@ -12,8 +13,9 @@ export async function GET(req: NextRequest, { params }: { params: { channelId: s
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { channelId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ channelId: string }> }) {
   try {
+    const { channelId } = await params;
     const body = await req.json();
     const res = await fetch(`${BACKEND_URL}/api/creator/update`, {
       method: 'POST',
